@@ -1,66 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { cities, boards, subjects } from '../data/tutors';
-import TutorCard from '../components/TutorCard';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import TutorsData from '../components/TutorsData';
 
 export default function Tutors() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedBoard, setSelectedBoard] = useState('');
-  const [tutors, setTutors] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-
-  useEffect(() => {
-    fetchTutors();
-  }, []);
-
-  const fetchTutors = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tutor_profiles')
-        .select(`
-          *,
-          profile:profile_id(full_name, username, phone)
-        `);
-
-      if (error) throw error;
-
-      // Transform the data to match the TutorCard component's expected format
-      const transformedTutors = data.map(tutor => ({
-        id: tutor.id,
-        name: tutor.profile?.full_name || 'Unknown',
-        subjects: tutor.subjects || [],
-        hourlyRate: tutor.hourly_rate || 0,
-        experience: tutor.experience || 0,
-        education: tutor.education || '',
-        availability: tutor.availability || [],
-        location: tutor.location || '',
-        boards: tutor.boards || [],
-        image: tutor.image_url || 'https://images.pexels.com/photos/5905902/pexels-photo-5905902.jpeg',
-        achievements: tutor.achievements || [],
-        languages: tutor.languages || [],
-        teachingStyle: tutor.teaching_style || '',
-        rating: 4.5 // Default rating for now
-      }));
-
-      setTutors(transformedTutors);
-    } catch (error) {
-      console.error('Error fetching tutors:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredTutors = tutors.filter(tutor => {
-    const matchesSearch = tutor.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = !selectedSubject || tutor.subjects.includes(selectedSubject);
-    const matchesCity = !selectedCity || tutor.location === selectedCity;
-    const matchesBoard = !selectedBoard || tutor.boards.includes(selectedBoard);
-    return matchesSearch && matchesSubject && matchesCity && matchesBoard;
-  });
 
   if (!user) {
     return (
@@ -129,22 +77,14 @@ export default function Tutors() {
         </div>
       </div>
       
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading tutors...</p>
-        </div>
-      ) : filteredTutors.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-600">No tutors found matching your criteria.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredTutors.map(tutor => (
-            <TutorCard key={tutor.id} tutor={tutor} />
-          ))}
-        </div>
-      )}
+      <TutorsData 
+        filters={{
+          searchTerm,
+          selectedSubject,
+          selectedCity,
+          selectedBoard
+        }}
+      />
     </div>
   );
 }
