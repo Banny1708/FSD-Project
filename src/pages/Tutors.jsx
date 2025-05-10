@@ -23,7 +23,7 @@ export default function Tutors() {
         .from('tutor_profiles')
         .select(`
           *,
-          profile:profiles(full_name, username, phone)
+          profiles!inner(full_name, username, phone)
         `);
 
       if (error) throw error;
@@ -31,7 +31,7 @@ export default function Tutors() {
       // Transform the data to match the TutorCard component's expected format
       const transformedTutors = data.map(tutor => ({
         id: tutor.id,
-        name: tutor.profile?.full_name || 'Unknown',
+        name: tutor.profiles?.full_name || 'Unknown',
         subjects: tutor.subjects || [],
         hourlyRate: tutor.hourly_rate || 0,
         experience: tutor.experience || 0,
