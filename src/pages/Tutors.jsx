@@ -19,47 +19,34 @@ export default function Tutors() {
 
   const fetchTutors = async () => {
     try {
-      // First, get all tutor profiles
-      const { data: tutorProfiles, error: tutorProfilesError } = await supabase
+      const { data, error } = await supabase
         .from('tutor_profiles')
-        .select('*');
+        .select(`
+          *,
+          profile:profiles(full_name, username, phone)
+        `);
 
-      if (tutorProfilesError) throw tutorProfilesError;
+      if (error) throw error;
 
-      // Get the user_ids from tutor profiles
-      const userIds = tutorProfiles.map(profile => profile.user_id);
+      // Transform the data to match the TutorCard component's expected format
+      const transformedTutors = data.map(tutor => ({
+        id: tutor.id,
+        name: tutor.profile?.full_name || 'Unknown',
+        subjects: tutor.subjects || [],
+        hourlyRate: tutor.hourly_rate || 0,
+        experience: tutor.experience || 0,
+        education: tutor.education || '',
+        availability: tutor.availability || [],
+        location: tutor.location || '',
+        boards: tutor.boards || [],
+        image: tutor.image_url || 'https://images.pexels.com/photos/5905902/pexels-photo-5905902.jpeg',
+        achievements: tutor.achievements || [],
+        languages: tutor.languages || [],
+        teachingStyle: tutor.teaching_style || '',
+        rating: 4.5 // Default rating for now
+      }));
 
-      // Then get the corresponding user profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', userIds)
-        .eq('role', 'tutor');
-
-      if (profilesError) throw profilesError;
-
-      // Combine the data from both tables
-      const combinedTutors = profiles.map(profile => {
-        const tutorProfile = tutorProfiles.find(tp => tp.user_id === profile.user_id);
-        return {
-          id: profile.id,
-          name: profile.full_name,
-          subjects: tutorProfile?.subjects || [],
-          hourlyRate: tutorProfile?.hourly_rate || 0,
-          experience: tutorProfile?.experience || 0,
-          education: tutorProfile?.education || '',
-          availability: tutorProfile?.availability || [],
-          location: tutorProfile?.location || '',
-          boards: tutorProfile?.boards || [],
-          image: tutorProfile?.image_url || 'https://images.pexels.com/photos/5905902/pexels-photo-5905902.jpeg',
-          achievements: tutorProfile?.achievements || [],
-          languages: tutorProfile?.languages || [],
-          teachingStyle: tutorProfile?.teaching_style || '',
-          rating: 4.5 // Default rating for now
-        };
-      });
-
-      setTutors(combinedTutors);
+      setTutors(transformedTutors);
     } catch (error) {
       console.error('Error fetching tutors:', error);
     } finally {
@@ -75,8 +62,12 @@ export default function Tutors() {
     return matchesSearch && matchesSubject && matchesCity && matchesBoard;
   });
 
-  if (!user || user.role !== 'student') {
-    return null;
+  if (!user) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-12 text-center">
+        <p className="text-gray-600">Please log in to view tutors.</p>
+      </div>
+    );
   }
 
   return (
